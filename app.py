@@ -32,7 +32,7 @@ if uploaded_file is not None:
 
         # Calculate the change in clicks and classify the status
         data_clean['Change'] = data_clean['After Update Clicks'] - data_clean['Before Update Clicks']
-        data_clean['Status'] = ['Improved' if row['Change'] > 0 else 'Worsened' if row['Change'] < 0 else 'Lost'
+        data_clean['Status'] = ['Improved' if row['Change'] > 0 else 'Worsened' if row['Change'] < 0 else 'No Change'
                                 for _, row in data_clean.iterrows()]
 
         # Trendline for sum of clicks before and after
@@ -41,15 +41,40 @@ if uploaded_file is not None:
 
         # Create a trendline for sum of all clicks before and after the update
         trendline_x = ['Before Update', 'After Update']
-        trendline_y = [sum_before, sum_after]
+        trendline_y_before = [sum_before, sum_before]  # Keep constant for before update
+        trendline_y_after = [sum_after, sum_after]  # Keep constant for after update
 
-        fig1 = px.line(
-            x=trendline_x, 
-            y=trendline_y, 
-            labels={'x': 'Update Phase', 'y': 'Total Clicks'},
-            title='Trendline of Total Clicks Before and After Update'
+        fig1 = go.Figure()
+
+        # Plot the Before Update trendline
+        fig1.add_trace(go.Scatter(
+            x=trendline_x,
+            y=trendline_y_before,
+            mode='lines',
+            name='Before Update Trendline',
+            line=dict(color='blue')
+        ))
+
+        # Plot the After Update trendline
+        fig1.add_trace(go.Scatter(
+            x=trendline_x,
+            y=trendline_y_after,
+            mode='lines',
+            name='After Update Trendline',
+            line=dict(color='green')
+        ))
+
+        # Update layout with dual axes
+        fig1.update_layout(
+            title='Trendline of Total Clicks Before and After Update',
+            xaxis_title='Update Phase',
+            yaxis_title='Total Clicks Before Update',
+            yaxis2=dict(
+                title='Total Clicks After Update',
+                overlaying='y',
+                side='right'
+            )
         )
-        fig1.update_traces(line=dict(color='blue'))
 
         # 2. Scatter Plot: Impact of Update on Clicks with OLS Trendline
         # Perform OLS regression (least squares) to get the trendline
@@ -64,7 +89,7 @@ if uploaded_file is not None:
                           labels={'Before Update Clicks': 'Clicks Before Update',
                                   'After Update Clicks': 'Clicks After Update'},
                           title="Impact of Update on Clicks",
-                          color_discrete_map={'Improved': 'green', 'Worsened': 'red', 'Lost': 'gray'})
+                          color_discrete_map={'Improved': 'green', 'Worsened': 'red', 'No Change': 'blue'})
 
         # Add the OLS trendline to the scatter plot
         fig2.add_traces(
@@ -77,13 +102,24 @@ if uploaded_file is not None:
             )
         )
 
+        # Calculate the counts of each status
+        status_counts = data_clean['Status'].value_counts()
+
+        # Pie chart showing the percentage of Improved, Worsened, No Change statuses
+        fig3 = px.pie(
+            names=status_counts.index, 
+            values=status_counts.values, 
+            title='Click Status Distribution After Update'
+        )
+
         # Display the DataFrame with Streamlit
         st.write("Here is the dataset used for the analysis:")
         st.dataframe(data_clean)
 
         # Show the plots
-        st.plotly_chart(fig1)
-        st.plotly_chart(fig2)
+        st.plotly_chart(fig1)  # Trendline with dual axes
+        st.plotly_chart(fig2)  # Scatter plot with OLS trendline
+        st.plotly_chart(fig3)  # Pie chart for click status distribution
 
     else:
         st.error("The uploaded file must contain 'Top queries', '3/7/25 - 3/12/25 Clicks', and '3/14/25 - 3/18/25 Clicks' columns.")
