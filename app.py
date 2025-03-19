@@ -3,6 +3,7 @@ import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
+from scipy import stats
 
 # Streamlit App Layout
 st.title('Clicks Before vs After Google Update')
@@ -34,91 +35,46 @@ if uploaded_file is not None:
         data_clean['Status'] = ['Improved' if row['Change'] > 0 else 'Worsened' if row['Change'] < 0 else 'Lost'
                                 for _, row in data_clean.iterrows()]
 
-        # 1. Grouped Bar Chart: Before and After Clicks
-        fig1 = px.bar(data_clean, 
-                      x='Top queries', 
-                      y=['Before Update Clicks', 'After Update Clicks'], 
-                      title="Before and After Update Clicks Comparison",
-                      labels={'Top queries': 'Query', 'value': 'Clicks'},
-                      color_discrete_map={'Before Update Clicks': 'blue', 'After Update Clicks': 'green'})
+        # Trendline for sum of clicks before and after
+        sum_before = data_clean['Before Update Clicks'].sum()
+        sum_after = data_clean['After Update Clicks'].sum()
 
-        # 2. Heatmap: Change in Clicks Across Queries (using Plotly)
-        # Using pivot_table instead of pivot to handle duplicate queries
-        heatmap_data = data_clean.pivot_table(index='Top queries', columns='Status', values='Change', aggfunc='mean')
+        # Create a trendline for sum of all clicks before and after the update
+        trendline_x = ['Before Update', 'After Update']
+        trendline_y = [sum_before, sum_after]
 
-        fig2 = go.Figure(data=go.Heatmap(
-            z=heatmap_data.values,
-            x=heatmap_data.columns,
-            y=heatmap_data.index,
-            colorscale='Viridis',  # You can change this to any colorscale you prefer
-        ))
-
-        fig2.update_layout(
-            title='Heatmap of Click Changes by Query Status',
-            xaxis=dict(title='Status'),
-            yaxis=dict(title='Queries'),
+        fig1 = px.line(
+            x=trendline_x, 
+            y=trendline_y, 
+            labels={'x': 'Update Phase', 'y': 'Total Clicks'},
+            title='Trendline of Total Clicks Before and After Update'
         )
+        fig1.update_traces(line=dict(color='blue'))
 
-        # 3. Box Plot: Distribution of Clicks Before and After Update
-        fig3 = px.box(data_clean, 
-                      x="Status", 
-                      y="Before Update Clicks", 
-                      points="all", 
-                      title="Distribution of Clicks Before Update",
-                      labels={'Before Update Clicks': 'Clicks'})
+        # 2. Scatter Plot: Impact of Update on Clicks with OLS Trendline
+        # Perform OLS regression (least squares) to get the trendline
+        slope, intercept, r_value, p_value, std_err = stats.linregress(data_clean['Before Update Clicks'], data_clean['After Update Clicks'])
 
-        fig4 = px.box(data_clean, 
-                      x="Status", 
-                      y="After Update Clicks", 
-                      points="all", 
-                      title="Distribution of Clicks After Update",
-                      labels={'After Update Clicks': 'Clicks'})
-
-        # 4. Scatter Plot: Impact of Update (using Absolute Size for better visualization)
-        fig5 = px.scatter(data_clean,
+        # Create the interactive scatter plot using Plotly
+        fig2 = px.scatter(data_clean,
                           x='Before Update Clicks', 
                           y='After Update Clicks', 
-                          size=np.abs(data_clean['Change']),  # Use absolute size for the points
                           color='Status',
-                          title="Impact of Update on Clicks",
+                          hover_data=['Top queries', 'Change', 'Before Update Clicks', 'After Update Clicks'],
                           labels={'Before Update Clicks': 'Clicks Before Update',
-                                  'After Update Clicks': 'Clicks After Update'})
+                                  'After Update Clicks': 'Clicks After Update'},
+                          title="Impact of Update on Clicks",
+                          color_discrete_map={'Improved': 'green', 'Worsened': 'red', 'Lost': 'gray'})
 
-        # 5. Pie Chart: Percentage of Queries Improved, Worsened, or Lost
-        fig6 = px.pie(data_clean, 
-                      names='Status', 
-                      title="Impact of Update on Queries (Improved, Worsened, Lost)",
-                      labels={'Status': 'Update Impact'})
-
-        # 6. Cumulative Distribution Function (CDF) using Plotly
-        before_clicks = np.sort(data_clean['Before Update Clicks'])
-        y_before = np.arange(1, len(before_clicks) + 1) / len(before_clicks)
-        after_clicks = np.sort(data_clean['After Update Clicks'])
-        y_after = np.arange(1, len(after_clicks) + 1) / len(after_clicks)
-
-        fig7 = go.Figure()
-
-        fig7.add_trace(go.Scatter(
-            x=before_clicks, 
-            y=y_before, 
-            mode='lines', 
-            name='Before Update',
-            line=dict(color='blue')
-        ))
-
-        fig7.add_trace(go.Scatter(
-            x=after_clicks, 
-            y=y_after, 
-            mode='lines', 
-            name='After Update',
-            line=dict(color='green')
-        ))
-
-        fig7.update_layout(
-            title='CDF of Clicks Before and After Update',
-            xaxis=dict(title='Clicks'),
-            yaxis=dict(title='CDF'),
-            showlegend=True
+        # Add the OLS trendline to the scatter plot
+        fig2.add_traces(
+            go.Scatter(
+                x=data_clean['Before Update Clicks'],
+                y=slope * data_clean['Before Update Clicks'] + intercept,
+                mode='lines',
+                name='OLS Trendline',
+                line=dict(color='blue', dash='dash')
+            )
         )
 
         # Display the DataFrame with Streamlit
@@ -128,10 +84,6 @@ if uploaded_file is not None:
         # Show the plots
         st.plotly_chart(fig1)
         st.plotly_chart(fig2)
-        st.plotly_chart(fig3)
-        st.plotly_chart(fig4)
-        st.plotly_chart(fig5)
-        st.plotly_chart(fig6)
-        st.plotly_chart(fig7)
+
     else:
         st.error("The uploaded file must contain 'Top queries', '3/7/25 - 3/12/25 Clicks', and '3/14/25 - 3/18/25 Clicks' columns.")
