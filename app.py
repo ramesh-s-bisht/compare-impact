@@ -76,16 +76,28 @@ if uploaded_file is not None:
             ]
         )
 
-        # 2. Pie chart showing the percentage of Improved, Worsened, No Change statuses
-        # Calculate the change in clicks for each query
+        # 2. Scatter Plot: Impact of Update on Clicks
+        # Calculate the change in clicks for each query and classify the status
         data_clean['Change'] = data_clean['After Update Clicks'] - data_clean['Before Update Clicks']
         data_clean['Status'] = ['Improved' if row['Change'] > 0 else 'Worsened' if row['Change'] < 0 else 'No Change'
                                 for _, row in data_clean.iterrows()]
 
+        # Scatter plot with Before vs After Update Clicks
+        fig2 = px.scatter(data_clean,
+                          x='Before Update Clicks', 
+                          y='After Update Clicks', 
+                          color='Status',
+                          hover_data=['Top queries', 'Change', 'Before Update Clicks', 'After Update Clicks'],
+                          labels={'Before Update Clicks': 'Clicks Before Update',
+                                  'After Update Clicks': 'Clicks After Update'},
+                          title="Impact of Update on Clicks",
+                          color_discrete_map={'Improved': 'green', 'Worsened': 'red', 'No Change': 'blue'})
+
+        # 3. Pie chart showing the percentage of Improved, Worsened, No Change statuses
         # Calculate the counts of each status
         status_counts = data_clean['Status'].value_counts()
 
-        fig2 = px.pie(
+        fig3 = px.pie(
             names=status_counts.index, 
             values=status_counts.values, 
             title='Click Status Distribution After Update'
@@ -97,7 +109,8 @@ if uploaded_file is not None:
 
         # Show the plots
         st.plotly_chart(fig1)  # Bar chart comparison for Before vs After Update Clicks
-        st.plotly_chart(fig2)  # Pie chart for click status distribution
+        st.plotly_chart(fig2)  # Scatter plot for Before vs After Update Clicks
+        st.plotly_chart(fig3)  # Pie chart for click status distribution
 
     else:
         st.error("The uploaded file must contain 'Top queries', '3/7/25 - 3/12/25 Clicks', and '3/14/25 - 3/18/25 Clicks' columns.")
