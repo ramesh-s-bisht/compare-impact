@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
+import streamlit as st
 
 # Generate sample data similar to the one you're working with
 np.random.seed(42)
@@ -105,14 +106,16 @@ fig7.update_layout(
     showlegend=True
 )
 
-# Show the example figures for Streamlit
-import ace_tools as tools; tools.display_dataframe_to_user(name="Example Data", dataframe=data_clean)
+# Display the DataFrame with Streamlit
+st.title("Example Data Display")
+st.write("Here is the dataset used for the analysis:")
+st.dataframe(data_clean)
 
 # Show the plots
-fig1.show()
-fig2.show()
-fig3.show()
-fig4.show()
-fig5.show()
-fig6.show()
-fig7.show()
+st.plotly_chart(fig1)
+st.plotly_chart(fig2)
+st.plotly_chart(fig3)
+st.plotly_chart(fig4)
+st.plotly_chart(fig5)
+st.plotly_chart(fig6)
+st.plotly_chart(fig7)
