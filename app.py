@@ -27,7 +27,9 @@ fig1 = px.bar(data_clean,
               color_discrete_map={'Before Update Clicks': 'blue', 'After Update Clicks': 'green'})
 
 # 2. Heatmap: Change in Clicks Across Queries (using Plotly)
-heatmap_data = data_clean.pivot('Top queries', 'Status', 'Change')
+# Using pivot_table instead of pivot to handle duplicate queries
+heatmap_data = data_clean.pivot_table(index='Top queries', columns='Status', values='Change', aggfunc='mean')
+
 fig2 = go.Figure(data=go.Heatmap(
     z=heatmap_data.values,
     x=heatmap_data.columns,
