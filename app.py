@@ -1,78 +1,87 @@
-import streamlit as st
 import pandas as pd
+import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
-import numpy as np
-from scipy import stats
+import matplotlib.pyplot as plt
+import seaborn as sns
 
-# Streamlit App Layout
-st.title('Clicks Before vs After Google Update')
-st.write("Upload a CSV file containing the data to visualize the clicks before and after the update.")
+# Generate sample data similar to the one you're working with
+np.random.seed(42)
+data = {
+    'Top queries': [f"Query {i}" for i in range(1, 21)],
+    '3/7/25 - 3/12/25 Clicks': np.random.randint(50, 200, 20),
+    '3/14/25 - 3/18/25 Clicks': np.random.randint(50, 200, 20)
+}
 
-# Upload CSV file
-uploaded_file = st.file_uploader("Choose a CSV file", type=["csv"])
+data_clean = pd.DataFrame(data)
+data_clean['Before Update Clicks'] = data_clean['3/7/25 - 3/12/25 Clicks']
+data_clean['After Update Clicks'] = data_clean['3/14/25 - 3/18/25 Clicks']
+data_clean['Change'] = data_clean['After Update Clicks'] - data_clean['Before Update Clicks']
+data_clean['Status'] = ['Improved' if row['Change'] > 0 else 'Worsened' if row['Change'] < 0 else 'Lost'
+                        for _, row in data_clean.iterrows()]
 
-if uploaded_file is not None:
-    # Load the data from the uploaded CSV file
-    data = pd.read_csv(uploaded_file)
+# Create a grouped bar chart: Before and After Clicks
+fig1 = px.bar(data_clean, 
+              x='Top queries', 
+              y=['Before Update Clicks', 'After Update Clicks'], 
+              title="Before and After Update Clicks Comparison",
+              labels={'Top queries': 'Query', 'value': 'Clicks'},
+              color_discrete_map={'Before Update Clicks': 'blue', 'After Update Clicks': 'green'})
 
-    # Check the first few rows of the uploaded data
-    st.write("Preview of the uploaded data:")
-    st.write(data.head())
+# Create a heatmap: Change in Clicks Across Queries
+pivot_data = data_clean.pivot('Top queries', 'Status', 'Change')
+plt.figure(figsize=(10, 6))
+sns.heatmap(pivot_data, annot=True, cmap="coolwarm", center=0)
+plt.title('Heatmap of Click Changes by Query Status')
+plt.show()
 
-    # Prepare the data for the analysis
-    if 'Top queries' in data.columns and '3/7/25 - 3/12/25 Clicks' in data.columns and '3/14/25 - 3/18/25 Clicks' in data.columns:
-        data_clean = data[['Top queries', '3/7/25 - 3/12/25 Clicks', '3/14/25 - 3/18/25 Clicks']]
+# Create a box plot: Distribution of Clicks Before and After Update
+fig2 = px.box(data_clean, 
+              x="Status", 
+              y="Before Update Clicks", 
+              points="all", 
+              title="Distribution of Clicks Before Update",
+              labels={'Before Update Clicks': 'Clicks'})
 
-        # Clean data (handling any missing values or zeros)
-        data_clean.loc[:, 'Before Update Clicks'] = data_clean['3/7/25 - 3/12/25 Clicks'].fillna(0)
-        data_clean.loc[:, 'After Update Clicks'] = data_clean['3/14/25 - 3/18/25 Clicks'].fillna(0)
+fig3 = px.box(data_clean, 
+              x="Status", 
+              y="After Update Clicks", 
+              points="all", 
+              title="Distribution of Clicks After Update",
+              labels={'After Update Clicks': 'Clicks'})
 
-        # Calculate the change in clicks and classify the status
-        data_clean.loc[:, 'Change'] = data_clean['After Update Clicks'] - data_clean['Before Update Clicks']
-        data_clean.loc[:, 'Status'] = ['Improved' if row['Change'] > 0 else 'Worsened' if row['Change'] < 0 else 'Lost'
-                                       for _, row in data_clean.iterrows()]
+# Scatter Plot: Impact of Update (using Absolute Size for better visualization)
+fig4 = px.scatter(data_clean,
+                  x='Before Update Clicks', 
+                  y='After Update Clicks', 
+                  size=np.abs(data_clean['Change']),  # Use absolute size for the points
+                  color='Status',
+                  title="Impact of Update on Clicks",
+                  labels={'Before Update Clicks': 'Clicks Before Update',
+                          'After Update Clicks': 'Clicks After Update'})
+fig4.show()
 
-        # Perform OLS regression (least squares) to get the trendline
-        slope, intercept, r_value, p_value, std_err = stats.linregress(data_clean['Before Update Clicks'], data_clean['After Update Clicks'])
+# Pie Chart: Percentage of Queries Improved, Worsened, or Lost
+fig5 = px.pie(data_clean, 
+              names='Status', 
+              title="Impact of Update on Queries (Improved, Worsened, Lost)",
+              labels={'Status': 'Update Impact'})
+fig5.show()
 
-        # Create the interactive scatter plot using Plotly
-        fig = px.scatter(data_clean,
-                         x='Before Update Clicks',
-                         y='After Update Clicks',
-                         color='Status',
-                         hover_data=['Top queries', 'Change'],
-                         labels={'Before Update Clicks': 'Clicks Before Update',
-                                 'After Update Clicks': 'Clicks After Update'},
-                         title="Clicks Before vs After Google Update (Interactive)",
-                         color_discrete_map={'Improved': 'green', 'Worsened': 'red', 'Lost': 'gray'})
+# Cumulative Distribution Function (CDF)
+before_clicks = np.sort(data_clean['Before Update Clicks'])
+y_before = np.arange(1, len(before_clicks) + 1) / len(before_clicks)
+after_clicks = np.sort(data_clean['After Update Clicks'])
+y_after = np.arange(1, len(after_clicks) + 1) / len(after_clicks)
 
-        # Add the OLS trendline to the plot
-        fig.add_traces(
-            go.Scatter(
-                x=data_clean['Before Update Clicks'],
-                y=slope * data_clean['Before Update Clicks'] + intercept,
-                mode='lines',
-                name='OLS Trendline',
-                line=dict(color='blue', dash='dash')
-            )
-        )
+plt.figure(figsize=(10, 6))
+plt.plot(before_clicks, y_before, label='Before Update')
+plt.plot(after_clicks, y_after, label='After Update')
+plt.title('CDF of Clicks Before and After Update')
+plt.xlabel('Clicks')
+plt.ylabel('CDF')
+plt.legend()
+plt.show()
 
-        # Set the same scale for both axes
-        fig.update_layout(
-            xaxis=dict(
-                zeroline=False,    # No zero line on x-axis
-                showgrid=False,    # Hide gridlines
-                ticks="outside"
-            ),
-            yaxis=dict(
-                zeroline=False,    # No zero line on y-axis
-                showgrid=False,    # Hide gridlines
-                ticks="outside"
-            )
-        )
-
-        # Display the interactive plot
-        st.plotly_chart(fig)
-    else:
-        st.error("The uploaded file must contain 'Top queries', '3/7/25 - 3/12/25 Clicks', and '3/14/25 - 3/18/25 Clicks' columns.")
+# Show the example figures for Streamlit
+import ace_tools as tools; tools.display_dataframe_to_user(name="Example Data", dataframe=data_clean)
