@@ -38,44 +38,53 @@ if uploaded_file is not None:
         data_clean['Status'] = ['Improved' if row['Change'] > 0 else 'Worsened' if row['Change'] < 0 else 'No Change'
                                 for _, row in data_clean.iterrows()]
 
-        # 1. Trendline for Before and After Updates with dual y-axes
+        # 1. Trendline for Before and After Updates with a single axis
         fig1 = go.Figure()
 
-        # Plot the Before Update trendline (left y-axis)
+        # Plot the Before Update trendline
         fig1.add_trace(go.Scatter(
             x=data_clean['Days'],
             y=data_clean['Before Update Clicks'],
-            mode='lines',
+            mode='lines+markers',
             name='Before Update Clicks',
             line=dict(color='blue'),
-            yaxis='y1'
+            marker=dict(color='blue', size=8),
         ))
 
-        # Plot the After Update trendline (right y-axis)
+        # Plot the After Update trendline
         fig1.add_trace(go.Scatter(
             x=data_clean['Days'],
             y=data_clean['After Update Clicks'],
-            mode='lines',
+            mode='lines+markers',
             name='After Update Clicks',
             line=dict(color='green'),
-            yaxis='y2'
+            marker=dict(color='green', size=8),
         ))
 
-        # Update layout with dual axes
+        # Add overall change in clicks
+        total_before = data_clean['Before Update Clicks'].sum()
+        total_after = data_clean['After Update Clicks'].sum()
+        total_change = total_after - total_before
+        trend_change_text = f"Total Change in Clicks: {'+' if total_change > 0 else ''}{total_change}"
+
+        # Update layout
         fig1.update_layout(
-            title='Clicks Trendline Before and After Update',
+            title='Comparison of Clicks Before and After Update',
             xaxis_title='Days',
-            yaxis=dict(
-                title='Clicks Before Update',
-                side='left',
-                tickmode='linear'
-            ),
-            yaxis2=dict(
-                title='Clicks After Update',
-                side='right',
-                overlaying='y',
-                tickmode='linear'
-            )
+            yaxis_title='Total Clicks',
+            showlegend=True,
+            annotations=[
+                go.layout.Annotation(
+                    x=0.5,
+                    y=1.05,
+                    xref="paper",
+                    yref="paper",
+                    text=trend_change_text,
+                    showarrow=False,
+                    font=dict(size=14, color='black'),
+                    align="center"
+                )
+            ]
         )
 
         # 2. Scatter Plot: Impact of Update on Clicks with OLS Trendline
@@ -119,7 +128,7 @@ if uploaded_file is not None:
         st.dataframe(data_clean)
 
         # Show the plots
-        st.plotly_chart(fig1)  # Trendline with dual y-axes
+        st.plotly_chart(fig1)  # Trendline with before and after updates
         st.plotly_chart(fig2)  # Scatter plot with OLS trendline
         st.plotly_chart(fig3)  # Pie chart for click status distribution
 
