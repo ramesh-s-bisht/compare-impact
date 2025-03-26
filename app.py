@@ -34,7 +34,11 @@ if uploaded_file is not None:
         # Prepare the data for the analysis
         data_clean = data[['Top queries', 'Before', 'After']]
 
-        # Clean data (handling any missing values or zeros)
+        # Convert 'Before' and 'After' columns to numeric, forcing errors to NaN
+        data_clean['Before'] = pd.to_numeric(data_clean['Before'], errors='coerce')
+        data_clean['After'] = pd.to_numeric(data_clean['After'], errors='coerce')
+
+        # Handle any NaN values by replacing them with 0
         data_clean['Before'] = data_clean['Before'].fillna(0)
         data_clean['After'] = data_clean['After'].fillna(0)
 
