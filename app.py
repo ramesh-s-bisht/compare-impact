@@ -20,18 +20,18 @@ if uploaded_file is not None:
     st.write(data.head())
 
     # Ensure the necessary columns are present in the uploaded data
-    required_columns = ['Top queries', '3/7/25 - 3/12/25 Clicks', '3/14/25 - 3/18/25 Clicks']
+    required_columns = ['Top queries', 'Before', 'After']
     if all(col in data.columns for col in required_columns):
         # Prepare the data for the analysis
-        data_clean = data[['Top queries', '3/7/25 - 3/12/25 Clicks', '3/14/25 - 3/18/25 Clicks']]
+        data_clean = data[['Top queries', 'Before', 'After']]
 
         # Clean data (handling any missing values or zeros)
-        data_clean['Before Update Clicks'] = data_clean['3/7/25 - 3/12/25 Clicks'].fillna(0)
-        data_clean['After Update Clicks'] = data_clean['3/14/25 - 3/18/25 Clicks'].fillna(0)
+        data_clean['Before'] = data_clean['Before'].fillna(0)
+        data_clean['After'] = data_clean['After'].fillna(0)
 
         # Calculate the total clicks before and after the update
-        total_before = data_clean['Before Update Clicks'].sum()
-        total_after = data_clean['After Update Clicks'].sum()
+        total_before = data_clean['Before'].sum()
+        total_after = data_clean['After'].sum()
 
         # Calculate the change in clicks
         total_change = total_after - total_before
@@ -78,18 +78,18 @@ if uploaded_file is not None:
 
         # 2. Scatter Plot: Impact of Update on Clicks
         # Calculate the change in clicks for each query and classify the status
-        data_clean['Change'] = data_clean['After Update Clicks'] - data_clean['Before Update Clicks']
+        data_clean['Change'] = data_clean['After'] - data_clean['Before']
         data_clean['Status'] = ['Improved' if row['Change'] > 0 else 'Worsened' if row['Change'] < 0 else 'No Change'
                                 for _, row in data_clean.iterrows()]
 
         # Scatter plot with Before vs After Update Clicks
         fig2 = px.scatter(data_clean,
-                          x='Before Update Clicks', 
-                          y='After Update Clicks', 
+                          x='Before', 
+                          y='After', 
                           color='Status',
-                          hover_data=['Top queries', 'Change', 'Before Update Clicks', 'After Update Clicks'],
-                          labels={'Before Update Clicks': 'Clicks Before Update',
-                                  'After Update Clicks': 'Clicks After Update'},
+                          hover_data=['Top queries', 'Change', 'Before', 'After'],
+                          labels={'Before': 'Clicks Before Update',
+                                  'After': 'Clicks After Update'},
                           title="Impact of Update on Clicks",
                           color_discrete_map={'Improved': 'green', 'Worsened': 'red', 'No Change': 'blue'})
 
@@ -113,4 +113,4 @@ if uploaded_file is not None:
         st.plotly_chart(fig3)  # Pie chart for click status distribution
 
     else:
-        st.error("The uploaded file must contain 'Top queries', '3/7/25 - 3/12/25 Clicks', and '3/14/25 - 3/18/25 Clicks' columns.")
+        st.error("The uploaded file must contain 'Top queries', 'Before', and 'After' columns.")
