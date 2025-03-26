@@ -22,7 +22,7 @@ if uploaded_file is not None:
         # Handle CSV parsing error by attempting different delimiters
         st.error("Error parsing the CSV file. It might have an incorrect delimiter or format issue.")
         st.write("Try uploading a CSV file with a standard format.")
-        return
+        st.stop()  # Stops the script execution
 
     # Display the first few rows of the data to the user
     st.write("Preview of the uploaded data:")
