@@ -12,8 +12,12 @@ st.write("Upload a CSV file containing the data to visualize the clicks before a
 uploaded_file = st.file_uploader("Choose a CSV file", type=["csv"])
 
 if uploaded_file is not None:
-    # Read the uploaded CSV into a DataFrame
-    data = pd.read_csv(uploaded_file)
+    # Try reading the CSV with different encoding
+    try:
+        data = pd.read_csv(uploaded_file, encoding='utf-8-sig')  # Try utf-8 with BOM handling
+    except UnicodeDecodeError:
+        # If utf-8-sig fails, try latin1 encoding
+        data = pd.read_csv(uploaded_file, encoding='latin1')
 
     # Display the first few rows of the data to the user
     st.write("Preview of the uploaded data:")
