@@ -12,12 +12,17 @@ st.write("Upload a CSV file containing the data to visualize the clicks before a
 uploaded_file = st.file_uploader("Choose a CSV file", type=["csv"])
 
 if uploaded_file is not None:
-    # Try reading the CSV with different encoding
+    # Try reading the CSV with different encoding and delimiter options
     try:
-        data = pd.read_csv(uploaded_file, encoding='utf-8-sig')  # Try utf-8 with BOM handling
+        data = pd.read_csv(uploaded_file, encoding='utf-8-sig', delimiter=None)  # Try utf-8 with BOM and auto-detect delimiter
     except UnicodeDecodeError:
         # If utf-8-sig fails, try latin1 encoding
-        data = pd.read_csv(uploaded_file, encoding='latin1')
+        data = pd.read_csv(uploaded_file, encoding='latin1', delimiter=None)
+    except pd.errors.ParserError:
+        # Handle CSV parsing error by attempting different delimiters
+        st.error("Error parsing the CSV file. It might have an incorrect delimiter or format issue.")
+        st.write("Try uploading a CSV file with a standard format.")
+        return
 
     # Display the first few rows of the data to the user
     st.write("Preview of the uploaded data:")
